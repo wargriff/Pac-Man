@@ -40,43 +40,52 @@ class Map:
 
         maze = []
 
-        # ===== BASE STRUCTURE =====
+        # ===== 1️⃣ BASE AVEC MURS PARTOUT =====
         for y in range(self.rows):
             row = []
-
             for x in range(self.cols):
-
-                # Bordures fixes
                 if x == 0 or x == self.cols - 1 or y == 0 or y == self.rows - 1:
                     row.append("#")
-
-                # Zone spawn centrale
-                elif 11 <= x <= 16 and 14 <= y <= 16:
-                    row.append(" ")
-
                 else:
-                    row.append(".")
-
+                    row.append("#")
             maze.append(row)
 
-        # ===== BLOCS STRUCTURÉS =====
-        for y in range(2, self.rows - 3, 2):
-            for x in range(2, self.cols - 3, 2):
+        # ===== 2️⃣ CREATION D'UN VRAI LABYRINTHE (DFS) =====
+        visited = set()
 
-                if random.random() < 0.35:
-                    # bloc 2x2
-                    maze[y][x] = "#"
-                    maze[y][x + 1] = "#"
-                    maze[y + 1][x] = "#"
-                    maze[y + 1][x + 1] = "#"
+        def carve(x, y):
+            directions = [(2, 0), (-2, 0), (0, 2), (0, -2)]
+            random.shuffle(directions)
 
-        # ===== COULOIRS HORIZONTAUX =====
-        for y in range(4, self.rows - 4, 4):
-            if random.random() < 0.5:
-                for x in range(2, self.cols - 2):
-                    maze[y][x] = "."
+            visited.add((x, y))
+            maze[y][x] = "."
 
-        # ===== SUPER PASTILLES =====
+            for dx, dy in directions:
+                nx, ny = x + dx, y + dy
+
+                if 1 <= nx < self.cols - 1 and 1 <= ny < self.rows - 1:
+                    if (nx, ny) not in visited:
+                        maze[y + dy // 2][x + dx // 2] = "."
+                        carve(nx, ny)
+
+        carve(1, 1)
+
+        # ===== 3️⃣ SYMETRIE HORIZONTALE =====
+        for y in range(self.rows):
+            for x in range(self.cols // 2):
+                maze[y][self.cols - 1 - x] = maze[y][x]
+
+        # ===== 4️⃣ ZONE SPAWN CENTRALE =====
+        for y in range(14, 17):
+            for x in range(11, 17):
+                maze[y][x] = " "
+
+        # ===== 5️⃣ OUVERTURES LATERALES (tunnels) =====
+        mid = self.rows // 2
+        maze[mid][0] = "."
+        maze[mid][self.cols - 1] = "."
+
+        # ===== 6️⃣ SUPER PASTILLES =====
         maze[1][1] = "o"
         maze[1][self.cols - 2] = "o"
         maze[self.rows - 2][1] = "o"
