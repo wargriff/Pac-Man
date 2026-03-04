@@ -23,7 +23,6 @@ class Audio:
 
         self.set_volume(0.5)
 
-        # Timer anti spam pour chomp
         self.last_chomp_time = 0
 
     # ----------------------------------
@@ -38,10 +37,13 @@ class Audio:
     # ----------------------------------
     def play_chomp(self):
         now = pygame.time.get_ticks()
-        if now - self.last_chomp_time > 120:  # 120ms entre deux sons
+        if now - self.last_chomp_time > 120:
             self.sounds["chomp"].play()
             self.last_chomp_time = now
 
+    # ----------------------------------
+    # SPECIFIC SOUNDS
+    # ----------------------------------
     def play_start(self):
         self.play("start")
 
@@ -60,6 +62,9 @@ class Audio:
     def play_intermission(self):
         self.play("intermission")
 
+    # ----------------------------------
+    # VOLUME
+    # ----------------------------------
     def set_volume(self, volume):
         for sound in self.sounds.values():
             sound.set_volume(volume)

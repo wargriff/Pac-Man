@@ -1,5 +1,6 @@
 import pygame
 from script.game_play import Game
+from script.menu import Menu, GameOverUI
 
 pygame.init()
 
@@ -28,10 +29,13 @@ WIN = "win"
 state = MENU
 
 # ==============================
-# GAME INSTANCE
+# INSTANCES
 # ==============================
 game = Game(screen)
+menu = Menu(screen)
+game_over_ui = GameOverUI(screen)
 
+# Fonts pour WIN (créées UNE seule fois)
 font_big = pygame.font.SysFont("Arial", 70, bold=True)
 font_small = pygame.font.SysFont("Arial", 32)
 
@@ -59,13 +63,20 @@ while running:
 
             game.resize(event.w, event.h)
 
+            game.screen = screen
+            menu.screen = screen
+            game_over_ui.screen = screen
+
         elif event.type == pygame.KEYDOWN:
 
             if state == MENU and event.key == pygame.K_RETURN:
                 game.reset_full_game()
                 state = GAME
 
-            elif state in (GAME_OVER, WIN) and event.key == pygame.K_r:
+        # 👇 Gestion bouton Game Over
+        if state == GAME_OVER:
+            if game_over_ui.handle_event(event):
+                game.restart_game()
                 state = MENU
 
     # ---------------- UPDATE ----------------
@@ -73,80 +84,54 @@ while running:
 
         game.update()
 
-        if game.lives <= 0:
+        # ✅ CORRECTION ICI
+        if game.game_over:
             state = GAME_OVER
 
-        # condition de victoire plus logique
         if game.level >= 10:
             state = WIN
 
     # ---------------- DRAW ----------------
     screen.fill((10, 10, 25))
 
-    width = screen.get_width()
-    height = screen.get_height()
-
-    center_x = width // 2
-
     if state == MENU:
-
-        title = font_big.render("PAC-MAN", True, (255, 255, 0))
-        start_text = font_small.render(
-            "Appuie sur ENTREE pour jouer",
-            True,
-            (255, 255, 255)
-        )
-
-        screen.blit(
-            title,
-            (center_x - title.get_width() // 2, int(height * 0.3))
-        )
-
-        screen.blit(
-            start_text,
-            (center_x - start_text.get_width() // 2, int(height * 0.45))
-        )
+        menu.draw()
 
     elif state == GAME:
-
         game.draw()
 
     elif state == GAME_OVER:
-
-        over_text = font_big.render("GAME OVER", True, (255, 0, 0))
-        retry_text = font_small.render(
-            "Appuie sur R pour retourner au menu",
-            True,
-            (255, 255, 255)
-        )
-
-        screen.blit(
-            over_text,
-            (center_x - over_text.get_width() // 2, int(height * 0.35))
-        )
-
-        screen.blit(
-            retry_text,
-            (center_x - retry_text.get_width() // 2, int(height * 0.5))
-        )
+        game.draw()
+        game_over_ui.draw()
 
     elif state == WIN:
+        game.draw()
+
+        width = screen.get_width()
+        height = screen.get_height()
+        center_x = width // 2
+        center_y = height // 2
+
+        overlay = pygame.Surface((width, height))
+        overlay.set_alpha(200)
+        overlay.fill((0, 0, 0))
+        screen.blit(overlay, (0, 0))
 
         win_text = font_big.render("VICTOIRE !", True, (0, 255, 0))
         retry_text = font_small.render(
-            "Appuie sur R pour retourner au menu",
+            "Clique sur Restart pour rejouer",
             True,
             (255, 255, 255)
         )
 
         screen.blit(
             win_text,
-            (center_x - win_text.get_width() // 2, int(height * 0.35))
+            (center_x - win_text.get_width() // 2, center_y - 100)
         )
 
         screen.blit(
             retry_text,
-            (center_x - retry_text.get_width() // 2, int(height * 0.5))
+            (center_x - retry_text.get_width() // 2, center_y)
         )
 
     pygame.display.flip()
