@@ -40,7 +40,7 @@ class Ghost:
         # ANIMATIONS
         # ----------------------------------
         self.animations = self.load_animations(folder_path)
-        self.current_direction = "left"
+        self.current_direction = next(iter(self.animations), "left")
 
         # ----------------------------------
         # TYPE (ghost normal ou boss)
@@ -79,20 +79,27 @@ class Ghost:
     def load_animations(self, base_path):
         animations = {}
 
-        print("Loading ghost from:", base_path)  # 👈 debug
+        print("Loading ghost from:", base_path)
 
-        for direction in self.DIRECTIONS:
-            path = os.path.join(base_path, direction)
-            print("Checking:", path)  # 👈 debug
+        if not os.path.exists(base_path):
+            print("❌ Folder not found:", base_path)
+            return animations
 
-            if os.path.exists(path):
-                animations[direction] = Animation(
-                    path,
-                    self.tile_size,
-                    speed=10
-                )
+        for folder in os.listdir(base_path):
 
-        print("Loaded directions:", animations.keys())  # 👈 debug
+            folder_lower = folder.lower()
+
+            if folder_lower in self.DIRECTIONS:
+                path = os.path.join(base_path, folder)
+
+                if os.path.isdir(path):
+                    animations[folder_lower] = Animation(
+                        path,
+                        self.tile_size,
+                        speed=10
+                    )
+
+        print("Loaded directions:", animations.keys())
 
         return animations
 
@@ -151,45 +158,11 @@ class Ghost:
     # --------------------------------------------------
     # UPDATE
     # --------------------------------------------------
-
     def update(self, map_obj, player_x, player_y):
 
         # =============================
-        # TIMER MOUVEMENT
+        # DIFFICULTÉ DYNAMIQUE
         # =============================
-        self.timer += 1
-
-        if self.timer >= self.speed:
-            self.timer = 0
-
-            if self.spawn_delay > 0:
-                self.spawn_delay -= 1
-                return
-
-            # ✅ correction ici
-            maze = map_obj.maze
-
-            dx, dy = self.choose_direction(maze, player_x, player_y)
-
-            new_x = self.x + dx
-            new_y = self.y + dy
-
-            if self.is_valid_move(maze, new_x, new_y):
-                self.x = new_x
-                self.y = new_y
-                self.update_direction(dx, dy)
-
-        # =============================
-        # TUNNEL
-        # =============================
-        self.handle_tunnel(map_obj)
-
-        # =============================
-        # ANIMATION
-        # =============================
-        self.animations[self.current_direction].update()
-
-        # Ajustement difficulté selon score
         if hasattr(map_obj, "score"):
             if map_obj.score > 1500:
                 self.speed = self.base_speed
@@ -197,6 +170,73 @@ class Ghost:
                 self.speed = self.base_speed + 2
             else:
                 self.speed = self.base_speed + 4
+
+        # =============================
+        # TIMER MOUVEMENT
+        # =============================
+        self.timer += 1
+        if self.timer < self.speed:
+            self.update_animation()
+            return
+
+        self.timer = 0
+
+        # =============================
+        # SPAWN DELAY (immobile au début)
+        # =============================
+        if self.spawn_delay > 0:
+            self.spawn_delay -= 1
+            self.update_animation()
+            return
+
+        maze = map_obj.maze
+
+        # =============================
+        # CHOIX DIRECTION IA
+        # =============================
+        dx, dy = self.choose_direction(maze, player_x, player_y)
+
+        new_x = self.x + dx
+        new_y = self.y + dy
+
+        # =============================
+        # VALIDATION MOUVEMENT
+        # =============================
+        if self.is_valid_move(maze, new_x, new_y):
+            self.x = new_x
+            self.y = new_y
+            self.update_direction(dx, dy)
+        else:
+            # Si bloqué → mouvement aléatoire de secours
+            dx, dy = self.random_move(maze)
+            if self.is_valid_move(maze, self.x + dx, self.y + dy):
+                self.x += dx
+                self.y += dy
+                self.update_direction(dx, dy)
+
+        # =============================
+        # TUNNEL (wrap horizontal)
+        # =============================
+        if self.x < 0:
+            self.x = map_obj.cols - 1
+        elif self.x >= map_obj.cols:
+            self.x = 0
+
+        # =============================
+        # ANIMATION
+        # =============================
+        self.update_animation()
+
+    def update_animation(self):
+        if not self.animations:
+            return
+
+        anim = self.animations.get(self.current_direction)
+
+        if anim is None:
+            anim = next(iter(self.animations.values()))
+
+        anim.update()
 
     # --------------------------------------------------
     # VALIDATION
@@ -222,18 +262,23 @@ class Ghost:
 
         distance = abs(self.x - player_x) + abs(self.y - player_y)
 
-        behaviors = {
-            "blinky": lambda: self.move_towards(maze, player_x, player_y),
-            "pinky": lambda: self.move_towards(maze, player_x + 2, player_y),
-            "inky": lambda: self.move_towards(maze, player_x, player_y)
-                              if random.random() < 0.6
-                              else self.random_move(maze),
-            "clyde": lambda: self.move_away(maze, player_x, player_y)
-                              if distance < 5
-                              else self.move_towards(maze, player_x, player_y)
-        }
+        if self.name == "blinky":
+            return self.move_towards(maze, player_x, player_y)
 
-        return behaviors.get(self.name, lambda: self.random_move(maze))()
+        elif self.name == "pinky":
+            return self.move_towards(maze, player_x + 2, player_y)
+
+        elif self.name == "inky":
+            if random.random() < 0.7:
+                return self.move_towards(maze, player_x, player_y)
+            return self.random_move(maze)
+
+        elif self.name == "clyde":
+            if distance < 5:
+                return self.move_away(maze, player_x, player_y)
+            return self.move_towards(maze, player_x, player_y)
+
+        return self.random_move(maze)
 
     # --------------------------------------------------
     # MOVE TOWARDS / AWAY

@@ -134,6 +134,8 @@ while running:
             (center_x - retry_text.get_width() // 2, center_y)
         )
 
+    clock.tick(60)
     pygame.display.flip()
+
 
 pygame.quit()
