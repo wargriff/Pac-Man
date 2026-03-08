@@ -1,7 +1,6 @@
 # script/audio.py
 
 import pygame
-import os
 from script.utils.resource import resource_path
 
 
@@ -15,7 +14,7 @@ class Audio:
 
         pygame.mixer.set_num_channels(8)
 
-        # chemin compatible PyInstaller
+        # dossier audio compatible PyInstaller
         self.base_path = resource_path("assets/audio")
 
         self.sounds = {}
@@ -45,14 +44,14 @@ class Audio:
 
     def load_sound(self, filename):
 
-        path = os.path.join(self.base_path, filename)
+        path = self.base_path / filename
 
-        if not os.path.exists(path):
+        if not path.exists():
             print("❌ Missing sound:", path)
             return None
 
         try:
-            return pygame.mixer.Sound(path)
+            return pygame.mixer.Sound(str(path))
 
         except pygame.error as e:
             print("❌ Sound load error:", filename, e)
@@ -114,13 +113,13 @@ class Audio:
 
     def play_music(self, filename, loop=True):
 
-        path = os.path.join(self.base_path, filename)
+        path = self.base_path / filename
 
-        if not os.path.exists(path):
+        if not path.exists():
             print("❌ Music missing:", path)
             return
 
-        pygame.mixer.music.load(path)
+        pygame.mixer.music.load(str(path))
 
         if loop:
             pygame.mixer.music.play(-1)
