@@ -35,7 +35,7 @@ game = Game(screen)
 menu = Menu(screen)
 game_over_ui = GameOverUI(screen)
 
-# Fonts pour WIN (créées UNE seule fois)
+# Fonts pour WIN
 font_big = pygame.font.SysFont("Arial", 70, bold=True)
 font_small = pygame.font.SysFont("Arial", 32)
 
@@ -48,12 +48,15 @@ while running:
 
     clock.tick(60)
 
-    # ---------------- EVENTS ----------------
+    # =============================
+    # EVENTS
+    # =============================
     for event in pygame.event.get():
 
         if event.type == pygame.QUIT:
             running = False
 
+        # ---------------- RESIZE ----------------
         elif event.type == pygame.VIDEORESIZE:
 
             screen = pygame.display.set_mode(
@@ -67,53 +70,59 @@ while running:
             menu.screen = screen
             game_over_ui.screen = screen
 
+        # ---------------- KEYBOARD ----------------
         elif event.type == pygame.KEYDOWN:
 
             if state == MENU and event.key == pygame.K_RETURN:
                 game.reset_full_game()
                 state = GAME
 
-        # 👇 Gestion bouton Game Over
+        # ---------------- GAME OVER BUTTON ----------------
         if state == GAME_OVER:
+
             if game_over_ui.handle_event(event):
                 game.restart_game()
                 state = MENU
 
-    # ---------------- UPDATE ----------------
+    # =============================
+    # UPDATE
+    # =============================
     if state == GAME:
 
         game.update()
 
-        # ✅ CORRECTION ICI
         if game.game_over:
             state = GAME_OVER
 
-        if game.level >= 10:
+        elif game.level >= 10:
             state = WIN
 
-    # ---------------- DRAW ----------------
+    # =============================
+    # DRAW
+    # =============================
     screen.fill((10, 10, 25))
 
+    # ---------- MENU ----------
     if state == MENU:
         menu.draw()
 
+    # ---------- GAME ----------
     elif state == GAME:
         game.draw()
 
-    elif state == WIN:
-        game.draw()
-        game_over_ui.draw()
-
-
+    # ---------- GAME OVER ----------
     elif state == GAME_OVER:
         game.draw()
         game_over_ui.draw()
 
+    # ---------- WIN ----------
     elif state == WIN:
+
         game.draw()
 
         width = screen.get_width()
         height = screen.get_height()
+
         center_x = width // 2
         center_y = height // 2
 
@@ -123,8 +132,9 @@ while running:
         screen.blit(overlay, (0, 0))
 
         win_text = font_big.render("VICTOIRE !", True, (0, 255, 0))
+
         retry_text = font_small.render(
-            "Clique sur Restart pour rejouer",
+            "Appuie sur ENTER pour rejouer",
             True,
             (255, 255, 255)
         )
@@ -139,8 +149,6 @@ while running:
             (center_x - retry_text.get_width() // 2, center_y)
         )
 
-    clock.tick(60)
     pygame.display.flip()
-
 
 pygame.quit()

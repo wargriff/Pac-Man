@@ -54,7 +54,7 @@ class Game:
         # =============================
         # SPAWN POSITIONS (CONST)
         # =============================
-        self.PLAYER_SPAWN = (14, 23)
+        self.PLAYER_SPAWN = self.find_player_spawn()
 
         # =============================
         # BASE DIRECTORY
@@ -173,6 +173,37 @@ class Game:
                 self.ghosts.append(ghost)
 
                 base_speed = max(12 - (self.level // 2), 4)
+
+    def find_player_spawn(self):
+
+        # centre théorique de la map
+        center_x = self.map.cols // 2
+        center_y = self.map.rows // 2
+
+        # si le centre n'est pas un mur → parfait
+        if not self.map.is_wall(center_x, center_y):
+            return center_x, center_y
+
+        # sinon on cherche autour du centre
+        radius = 1
+
+        while radius < max(self.map.cols, self.map.rows):
+
+            for dx in range(-radius, radius + 1):
+                for dy in range(-radius, radius + 1):
+
+                    x = center_x + dx
+                    y = center_y + dy
+
+                    if 0 <= x < self.map.cols and 0 <= y < self.map.rows:
+
+                        if not self.map.is_wall(x, y):
+                            return x, y
+
+            radius += 1
+
+        # fallback ultime
+        return 1, 1
 
     # ==================================================
     # UPDATE

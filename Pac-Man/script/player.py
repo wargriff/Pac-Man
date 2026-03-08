@@ -7,237 +7,230 @@ class Player:
 
     def __init__(self, x, y, tile_size, audio, base_dir):
 
-        # ----------------------------------
+        # =========================
+        # CONFIG
+        # =========================
+        self.tile_size = tile_size
+        self.audio = audio
+
+        # =========================
         # POSITION
-        # ----------------------------------
-        self.x = x
-        self.y = y
+        # =========================
         self.spawn_x = x
         self.spawn_y = y
 
-        # ----------------------------------
-        # CONFIG
-        # ----------------------------------
-        self.tile_size = tile_size
-        self.audio = audio
-        self.direction = "RIGHT"
-        self.score = 0
+        self.grid_x = x
+        self.grid_y = y
 
-        # ----------------------------------
-        # LIFE & STATE SYSTEM
-        # ----------------------------------
+        self.x = x * tile_size
+        self.y = y * tile_size
+
+        # =========================
+        # MOVEMENT
+        # =========================
+        self.dx = 0
+        self.dy = 0
+
+        self.next_dx = 0
+        self.next_dy = 0
+
+        self.speed = 2
+        self.direction = "RIGHT"
+
+        # =========================
+        # GAME STATS
+        # =========================
+        self.score = 0
 
         self.max_lives = 3
         self.lives = self.max_lives
 
-        # ----- Player states -----
         self.is_dead = False
         self.game_over = False
-        self.respawning = False
 
-        # ----- Death management -----
-        self.death_sound_played = False
-        self.death_timer = 0
-        self.death_duration = 60  # frames avant respawn (si tu veux délai)
-
-        # ----- Invincibility -----
-        self.invincible = False
-        self.invincible_timer = 0
-        self.invincible_duration = 120  # ~2 seczzzzzzzz
-
-        # ----------------------------------
-        # POWER MODE
-        # ----------------------------------
+        # =========================
+        # POWER / INVINCIBILITY
+        # =========================
         self.power_mode = False
         self.power_timer = 0
-        self.power_duration = 300  # ~5 sec
+        self.power_duration = 300
 
-        # ----------------------------------
-        # MOVEMENT
-        # ----------------------------------
-        self.move_timer = 0
-        self.speed = 2
+        self.invincible = False
+        self.invincible_timer = 0
+        self.invincible_duration = 120
 
-        # ----------------------------------
-        # ANIMATIONS
-        # ----------------------------------
+        # =========================
+        # DEATH
+        # =========================
+        self.death_sound_played = False
 
-        pac_folder = os.path.abspath(
-            os.path.join(base_dir, "assets", "sprites", "Pac-Man")
-        )
+        # =========================
+        # SPRITES / ANIMATIONS
+        # =========================
+        pac_folder = os.path.join(base_dir, "assets", "sprites", "Pac-Man")
+
+        directions = ["RIGHT", "LEFT", "UP", "DOWN"]
 
         self.animations = {
-            "RIGHT": Animation(os.path.join(pac_folder, "right"), tile_size, 6),
-            "LEFT": Animation(os.path.join(pac_folder, "left"), tile_size, 6),
-            "UP": Animation(os.path.join(pac_folder, "up"), tile_size, 6),
-            "DOWN": Animation(os.path.join(pac_folder, "down"), tile_size, 6),
+            d: Animation(os.path.join(pac_folder, d.lower()), tile_size, 6)
+            for d in directions
         }
 
-        # Animation mort
         self.death_animation = Animation(
             os.path.join(pac_folder, "death"),
             tile_size,
             6
         )
+
     # ==================================================
     # UPDATE
     # ==================================================
+
     def update(self, game_map):
 
-        # ==========================
-        # GAME OVER → blocage total
-        # ==========================
-        if self.game_over:
+        if self.game_over or self.is_dead:
             return
 
-        # ==========================
-        # MORT → animation
-        # ==========================
-        if self.is_dead:
-
-            if not self.death_sound_played:
-                self.audio.play_death()
-                self.death_sound_played = True
-
-            self.death_animation.update()
-
-            # Fin animation
-            if self.death_animation.current_frame == len(self.death_animation.frames) - 1:
-
-                if self.lives <= 0:
-                    self.game_over = True
-                else:
-                    self.is_dead = False
-                    self.invincible = True
-                    self.invincible_timer = self.invincible_duration
-                    self.reset_position()
-
-            return
-
-        # ==========================
-        # INPUT
-        # ==========================
-        keys = pygame.key.get_pressed()
-
-        wanted_dx, wanted_dy = 0, 0
-        wanted_dir = self.direction
-
-        if keys[pygame.K_q]:
-            wanted_dx, wanted_dy = -1, 0
-            wanted_dir = "LEFT"
-        elif keys[pygame.K_d]:
-            wanted_dx, wanted_dy = 1, 0
-            wanted_dir = "RIGHT"
-        elif keys[pygame.K_z]:
-            wanted_dx, wanted_dy = 0, -1
-            wanted_dir = "UP"
-        elif keys[pygame.K_s]:
-            wanted_dx, wanted_dy = 0, 1
-            wanted_dir = "DOWN"
-
-        # ==========================
-        # TIMERS
-        # ==========================
         self.update_timers()
 
-        self.move_timer += 1
-        if self.move_timer < self.speed:
-            self.animations[self.direction].update()
-            return
+        keys = pygame.key.get_pressed()
 
-        self.move_timer = 0
+        # =========================
+        # INPUT
+        # =========================
+        if keys[pygame.K_q] or keys[pygame.K_LEFT]:
+            self.next_dx, self.next_dy = -1, 0
+            self.direction = "LEFT"
 
-        # ==========================
-        # DIRECTION CHECK
-        # ==========================
-        test_x = self.x + wanted_dx
-        test_y = self.y + wanted_dy
+        elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
+            self.next_dx, self.next_dy = 1, 0
+            self.direction = "RIGHT"
 
-        if not game_map.is_wall(test_x, test_y):
-            self.direction = wanted_dir
-            dx, dy = wanted_dx, wanted_dy
+        elif keys[pygame.K_z] or keys[pygame.K_UP]:
+            self.next_dx, self.next_dy = 0, -1
+            self.direction = "UP"
+
+        elif keys[pygame.K_s] or keys[pygame.K_DOWN]:
+            self.next_dx, self.next_dy = 0, 1
+            self.direction = "DOWN"
+
+        # =========================
+        # POSITIONS
+        # =========================
+        half = self.tile_size // 2
+
+        center_x = self.grid_x * self.tile_size + half
+        center_y = self.grid_y * self.tile_size + half
+
+        player_center_x = self.x + half
+        player_center_y = self.y + half
+
+        tolerance = self.speed
+
+        at_center = (
+                abs(player_center_x - center_x) <= tolerance
+                and abs(player_center_y - center_y) <= tolerance
+        )
+
+        # =========================
+        # TURN SYSTEM
+        # =========================
+        if at_center:
+
+            # snap parfait au centre
+            self.x = center_x - half
+            self.y = center_y - half
+
+            # tentative de virage
+            test_x = self.grid_x + self.next_dx
+            test_y = self.grid_y + self.next_dy
+
+            if not game_map.is_wall(test_x, test_y):
+                self.dx = self.next_dx
+                self.dy = self.next_dy
+
+        # =========================
+        # CALCUL PROCHAINE POSITION
+        # =========================
+        next_x = self.x + self.dx * self.speed
+        next_y = self.y + self.dy * self.speed
+
+        next_center_x = next_x + half
+        next_center_y = next_y + half
+
+        grid_x = int(next_center_x // self.tile_size)
+        grid_y = int(next_center_y // self.tile_size)
+
+        # =========================
+        # COLLISION MUR
+        # =========================
+        if not game_map.is_wall(grid_x, grid_y):
+
+            self.x = next_x
+            self.y = next_y
+
+            self.grid_x = int((self.x + half) // self.tile_size)
+            self.grid_y = int((self.y + half) // self.tile_size)
+
         else:
-            dx, dy = self.get_current_direction_vector()
+            # stop si mur
+            self.dx = 0
+            self.dy = 0
 
-        new_x = self.x + dx
-        new_y = self.y + dy
+        # =========================
+        # MAP INTERACTION
+        # =========================
+        result = game_map.eat_dot(self.grid_x, self.grid_y)
 
-        # ==========================
-        # TUNNEL WRAP AVANT WALL CHECK
-        # ==========================
+        if result == "dot":
+            self.score += 10
+            self.audio.play_chomp()
 
-        # Horizontal wrap
-        if new_x < 0:
-            new_x = game_map.cols - 1
-        elif new_x >= game_map.cols:
-            new_x = 0
+        elif result == "power":
+            self.score += 50
+            self.activate_power_mode()
 
-        # Vertical wrap
-        if new_y < 0:
-            new_y = game_map.rows - 1
-        elif new_y >= game_map.rows:
-            new_y = 0
-
-        # ==========================
-        # MOUVEMENT
-        # ==========================
-        if not game_map.is_wall(new_x, new_y):
-
-            self.x = new_x
-            self.y = new_y
-
-            result = game_map.eat_dot(self.x, self.y)
-
-            if result == "dot":
-                self.score += 10
-                self.audio.play_chomp()
-
-            elif result == "power":
-                self.score += 50
-                self.audio.play_eatfruit()
-                self.activate_power_mode()
-
-        # ==========================
+        # =========================
         # ANIMATION
-        # ==========================
-        self.animations[self.direction].update()
+        # =========================
+        anim = self.animations.get(self.direction)
 
-    def get_current_direction_vector(self):
-        if self.direction == "LEFT":
-            return -1, 0
-        elif self.direction == "RIGHT":
-            return 1, 0
-        elif self.direction == "UP":
-            return 0, -1
-        elif self.direction == "DOWN":
-            return 0, 1
-        return 0, 0
+        if anim:
+            anim.update()
 
     # ==================================================
     # POWER MODE
     # ==================================================
+
     def activate_power_mode(self):
+
         self.power_mode = True
         self.power_timer = self.power_duration
 
     # ==================================================
-    # TIMER UPDATE
+    # TIMERS
     # ==================================================
+
     def update_timers(self):
 
         if self.power_mode:
+
             self.power_timer -= 1
+
             if self.power_timer <= 0:
                 self.power_mode = False
 
         if self.invincible:
+
             self.invincible_timer -= 1
+
             if self.invincible_timer <= 0:
                 self.invincible = False
 
     # ==================================================
-    # COLLISION WITH GHOST
+    # COLLISION
     # ==================================================
+
     def check_collision(self, ghosts):
 
         if self.is_dead or self.game_over:
@@ -245,9 +238,8 @@ class Player:
 
         for ghost in ghosts:
 
-            if ghost.x == self.x and ghost.y == self.y:
+            if ghost.grid_x == self.grid_x and ghost.grid_y == self.grid_y:
 
-                # Power mode → on attaque
                 if self.power_mode:
 
                     if ghost.is_boss:
@@ -257,56 +249,72 @@ class Player:
                         ghost.reset()
                         self.score += 100
 
-                # Sinon → mort
                 elif not self.invincible:
 
                     self.lives -= 1
                     self.is_dead = True
                     self.death_sound_played = False
 
-                    # Reset animation
                     self.death_animation.current_frame = 0
                     self.death_animation.timer = 0
 
                     break
 
+    def pixel_to_grid(self, x, y):
+        return int(x // self.tile_size), int(y // self.tile_size)
+
     # ==================================================
-    # RESET POSITION
+    # RESET
     # ==================================================
+
     def reset_position(self):
-        self.x = self.spawn_x
-        self.y = self.spawn_y
 
-    def handle_tunnel(self, game_map):
+        self.grid_x = self.spawn_x
+        self.grid_y = self.spawn_y
 
-        if self.y == game_map.rows // 2:
+        self.x = self.spawn_x * self.tile_size
+        self.y = self.spawn_y * self.tile_size
 
-            if self.x < 0:
-                self.x = game_map.cols - 1
+        # reset mouvement
+        self.dx = 0
+        self.dy = 0
+        self.next_dx = 0
+        self.next_dy = 0
 
-            elif self.x >= game_map.cols:
-                self.x = 0
+        self.direction = "RIGHT"
 
     # ==================================================
     # DRAW
     # ==================================================
+
     def draw(self, surface, offset_x, offset_y):
 
         if self.game_over:
             return
 
-        if self.is_dead:
-            frame = self.death_animation.get_frame()
-        else:
-            frame = self.animations[self.direction].get_frame()
-
+        # =========================
+        # INVINCIBILITY BLINK
+        # =========================
         if self.invincible and (self.invincible_timer % 10 < 5):
             return
 
-        surface.blit(
-            frame,
-            (
-                offset_x + self.x * self.tile_size,
-                offset_y + self.y * self.tile_size
-            )
-        )
+        # =========================
+        # CHOOSE FRAME
+        # =========================
+        if self.is_dead:
+            frame = self.death_animation.get_frame()
+        else:
+            anim = self.animations.get(self.direction)
+
+            if anim:
+                frame = anim.get_frame()
+            else:
+                return
+
+        # =========================
+        # DRAW (PIXEL POSITION)
+        # =========================
+        draw_x = offset_x + int(self.x)
+        draw_y = offset_y + int(self.y)
+
+        surface.blit(frame, (draw_x, draw_y))
