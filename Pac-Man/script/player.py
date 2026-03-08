@@ -56,7 +56,7 @@ class Player:
         # MOVEMENT
         # ----------------------------------
         self.move_timer = 0
-        self.speed = 6
+        self.speed = 2
 
         # ----------------------------------
         # ANIMATIONS

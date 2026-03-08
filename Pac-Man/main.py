@@ -100,6 +100,11 @@ while running:
     elif state == GAME:
         game.draw()
 
+    elif state == WIN:
+        game.draw()
+        game_over_ui.draw()
+
+
     elif state == GAME_OVER:
         game.draw()
         game_over_ui.draw()

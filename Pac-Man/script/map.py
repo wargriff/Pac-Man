@@ -90,28 +90,53 @@ class Map:
     # DFS ITERATIVE CARVING
     # ==========================================================
     def _carve_paths_iterative(self, maze: List[List[str]]) -> None:
-        stack = [(1, 1)]
-        maze[1][1] = DOT
+
+        # Logical grid groups cells in 4x4 blocks; ensure at least 1x1
+        logical_cols = max(1, self.cols // 4)
+        logical_rows = max(1, self.rows // 4)
+
+        grid = [[WALL for _ in range(logical_cols)] for _ in range(logical_rows)]
+
+        stack = [(0, 0)]
+        grid[0][0] = DOT
+
+        directions = DIRECTIONS_4[:]
 
         while stack:
             x, y = stack[-1]
-            directions = DIRECTIONS_2[:]
-            random.shuffle(directions)
+            dirs = directions[:]
+            random.shuffle(dirs)
 
-            for dx, dy in directions:
-                nx, ny = x + dx, y + dy
+            carved = False
 
-                if (
-                    1 <= nx < self.cols - 1 and
-                    1 <= ny < self.rows - 1 and
-                    maze[ny][nx] == WALL
-                ):
-                    maze[y + dy // 2][x + dx // 2] = DOT
-                    maze[ny][nx] = DOT
+            for dx, dy in dirs:
+                nx = x + dx
+                ny = y + dy
+
+                if 0 <= nx < logical_cols and 0 <= ny < logical_rows and grid[ny][nx] == WALL:
+                    grid[ny][nx] = DOT
                     stack.append((nx, ny))
+                    carved = True
                     break
-            else:
+
+            if not carved:
                 stack.pop()
+
+        # Expand logical grid into the real maze (3x3 open blocks inside each 4x4 cell)
+        for gy in range(logical_rows):
+            for gx in range(logical_cols):
+
+                if grid[gy][gx] == DOT:
+
+                    base_x = gx * 4 + 1
+                    base_y = gy * 4 + 1
+
+                    for dy in range(3):
+                        for dx in range(3):
+                            tx = base_x + dx
+                            ty = base_y + dy
+                            if self.in_bounds(tx, ty):
+                                maze[ty][tx] = DOT
 
     # ==========================================================
     # WALL SOFTENER
@@ -119,9 +144,15 @@ class Map:
     def _soften_walls(self, maze: List[List[str]]) -> None:
         intensity = 25 + self.level * 3
 
+        # avoid selecting border cells to prevent accidental out-of-bounds
+        min_x = 2
+        max_x = max(2, self.cols - 3)
+        min_y = 2
+        max_y = max(2, self.rows - 3)
+
         for _ in range(intensity):
-            x = random.randint(2, self.cols - 3)
-            y = random.randint(2, self.rows - 3)
+            x = random.randint(min_x, max_x)
+            y = random.randint(min_y, max_y)
 
             if maze[y][x] == WALL:
                 maze[y][x] = DOT
@@ -189,20 +220,28 @@ class Map:
         # -----------------------
         # Tunnel horizontal
         # -----------------------
-        maze[mid_row][0] = EMPTY
-        maze[mid_row][1] = EMPTY
-        maze[mid_row][self.cols - 2] = EMPTY
-        maze[mid_row][self.cols - 1] = EMPTY
+        if self.in_bounds(0, mid_row):
+            maze[mid_row][0] = EMPTY
+        if self.in_bounds(1, mid_row):
+            maze[mid_row][1] = EMPTY
+        if self.in_bounds(self.cols - 2, mid_row):
+            maze[mid_row][self.cols - 2] = EMPTY
+        if self.in_bounds(self.cols - 1, mid_row):
+            maze[mid_row][self.cols - 1] = EMPTY
 
         # -----------------------
         # Tunnel vertical
         # -----------------------
-        maze[0][mid_col] = EMPTY
-        maze[1][mid_col] = EMPTY
-        maze[self.rows - 2][mid_col] = EMPTY
-        maze[self.rows - 1][mid_col] = EMPTY
+        if self.in_bounds(mid_col, 0):
+            maze[0][mid_col] = EMPTY
+        if self.in_bounds(mid_col, 1):
+            maze[1][mid_col] = EMPTY
+        if self.in_bounds(mid_col, self.rows - 2):
+            maze[self.rows - 2][mid_col] = EMPTY
+        if self.in_bounds(mid_col, self.rows - 1):
+            maze[self.rows - 1][mid_col] = EMPTY
 
-    def wrap_position(self, x: int, y: int) -> tuple[int, int]:
+    def wrap_position(self, x: int, y: int) -> Tuple[int, int]:
         """
         Gère la téléportation sur les bords.
         """
@@ -237,7 +276,11 @@ class Map:
         ]
 
         for x, y in positions:
-            maze[y][x] = POWER
+            if not self.in_bounds(x, y):
+                continue
+            # don't overwrite EMPTY (spawn/tunnel) — prefer placing on DOT or WALL
+            if maze[y][x] != EMPTY:
+                maze[y][x] = POWER
 
     # ==========================================================
     # GAME LOGIC
