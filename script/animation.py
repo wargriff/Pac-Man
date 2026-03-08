@@ -1,63 +1,121 @@
 # script/animation.py
+
 import os
 import pygame
+from script.utils.resource import resource_path
 
+
+
+# ==========================================================
+# ASSET MANAGER
+# ==========================================================
+
+class AssetManager:
+
+    _images = {}
+
+    @classmethod
+    def image(cls, path):
+
+        if path not in cls._images:
+
+            full = resource_path(path)
+            cls._images[path] = pygame.image.load(full).convert_alpha()
+
+        return cls._images[path]
+
+
+# ==========================================================
+# ANIMATION
+# ==========================================================
 
 class Animation:
 
     def __init__(self, folder_path, tile_size, speed=8, loop=True):
+
         self.frames = []
-        self.speed = speed        # vitesse du changement de frame
+        self.speed = speed
         self.timer = 0
         self.current_frame = 0
         self.loop = loop
         self.finished = False
 
-        if not os.path.exists(folder_path):
-            raise FileNotFoundError(f"Dossier introuvable : {folder_path}")
+        # chemin absolu compatible PyInstaller
+        folder = resource_path(folder_path)
 
-        # Trier les fichiers correctement même si les numéros ont des zéros initiaux
+        if not os.path.exists(folder):
+            raise FileNotFoundError(f"Dossier introuvable : {folder}")
+
+        # tri correct des frames
         files = sorted(
-            [f for f in os.listdir(folder_path) if f.endswith(".png")],
-            key=lambda x: int(x.split("_")[1].split(".")[0].lstrip("0")) if "_" in x else 0
+            [f for f in os.listdir(folder) if f.endswith(".png")],
+            key=self._frame_sort
         )
 
         print("Loaded frames:", files)
 
         for file in files:
-            img = pygame.image.load(os.path.join(folder_path, file)).convert_alpha()
+
+            img = AssetManager.image(f"{folder_path}/{file}")
             img = pygame.transform.scale(img, (tile_size, tile_size))
+
             self.frames.append(img)
 
         if not self.frames:
-            raise ValueError(f"Aucune image trouvée dans {folder_path}")
+            raise ValueError(f"Aucune image trouvée dans {folder}")
+
+    # ==========================================================
+    # TRI DES FRAMES
+    # ==========================================================
+
+    def _frame_sort(self, filename):
+
+        try:
+            return int(filename.split("_")[1].split(".")[0])
+        except:
+            return 0
+
+    # ==========================================================
+    # UPDATE
+    # ==========================================================
 
     def update(self):
-        """Avancer l'animation d'une frame si nécessaire"""
-        if self.finished or len(self.frames) == 0:
+
+        if self.finished or not self.frames:
             return
 
         self.timer += 1
+
         if self.timer >= self.speed:
+
             self.timer = 0
+
             if self.loop:
-                # boucle infinie
                 self.current_frame = (self.current_frame + 1) % len(self.frames)
+
             else:
-                # animation qui se joue une seule fois
                 if self.current_frame < len(self.frames) - 1:
                     self.current_frame += 1
                 else:
-                    self.finished = True  # animation terminée
+                    self.finished = True
+
+    # ==========================================================
+    # RESET
+    # ==========================================================
 
     def reset(self):
-        """Remettre l'animation au début"""
+
         self.current_frame = 0
         self.timer = 0
         self.finished = False
 
+    # ==========================================================
+    # GET FRAME
+    # ==========================================================
+
     def get_frame(self):
-        """Retourne la frame actuelle"""
-        if len(self.frames) == 0:
+
+        if not self.frames:
             return None
+
         return self.frames[self.current_frame]

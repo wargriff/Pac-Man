@@ -1,12 +1,26 @@
 import pygame
+import os
 from script.game_play import Game
 from script.menu import Menu, GameOverUI
 
+# Fix audio Windows / PyInstaller
+os.environ["SDL_AUDIODRIVER"] = "directsound"
+
 pygame.init()
+
+pygame.mixer.init(
+    frequency=44100,
+    size=-16,
+    channels=2,
+    buffer=512
+)
+
+print("Mixer initialized:", pygame.mixer.get_init())
 
 # ==============================
 # WINDOW CONFIG
 # ==============================
+
 START_WIDTH = 900
 START_HEIGHT = 700
 

@@ -667,7 +667,12 @@
    'C:\\Users\\wargriff\\Pycharm_Project_v 3.12\\Pac-Man\\script\\render.py',
    'PYMODULE'),
   ('script.utils',
-   'C:\\Users\\wargriff\\Pycharm_Project_v 3.12\\Pac-Man\\script\\utils.py',
+   'C:\\Users\\wargriff\\Pycharm_Project_v '
+   '3.12\\Pac-Man\\script\\utils\\__init__.py',
+   'PYMODULE'),
+  ('script.utils.resource',
+   'C:\\Users\\wargriff\\Pycharm_Project_v '
+   '3.12\\Pac-Man\\script\\utils\\resource.py',
    'PYMODULE'),
   ('selectors',
    'C:\\Users\\barro\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\selectors.py',

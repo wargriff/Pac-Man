@@ -3,7 +3,9 @@ import pygame
 from script.animation import Animation
 
 class Player:
-    def __init__(self, x, y, tile_size, audio, base_dir):
+
+    def __init__(self, x, y, tile_size, audio):
+
         # =========================
         # CONFIG
         # =========================
@@ -15,8 +17,10 @@ class Player:
         # =========================
         self.spawn_x = x
         self.spawn_y = y
+
         self.grid_x = x
         self.grid_y = y
+
         self.x = x * tile_size
         self.y = y * tile_size
 
@@ -25,8 +29,10 @@ class Player:
         # =========================
         self.dx = 0
         self.dy = 0
+
         self.next_dx = 0
         self.next_dy = 0
+
         self.speed = 2
         self.direction = "RIGHT"
 
@@ -36,15 +42,20 @@ class Player:
         self.score = 0
         self.max_lives = 3
         self.lives = self.max_lives
+
         self.is_dead = False
         self.game_over = False
 
         # =========================
-        # POWER / INVINCIBILITY
+        # POWER MODE
         # =========================
         self.power_mode = False
         self.power_timer = 0
         self.power_duration = 300
+
+        # =========================
+        # INVINCIBILITY
+        # =========================
         self.invincible = False
         self.invincible_timer = 0
         self.invincible_duration = 120
@@ -57,27 +68,41 @@ class Player:
         self.death_sound_played = False
 
         # =========================
-        # SPRITES / ANIMATIONS
+        # ANIMATIONS
         # =========================
-        pac_folder = os.path.join(base_dir, "assets", "sprites", "Pac-Man")
+        pac_folder = "assets/sprites/Pac-Man"
 
         self.directions = ["RIGHT", "LEFT", "UP", "DOWN"]
         self.animations = {}
 
-        # Charger les animations pour chaque direction
         for d in self.directions:
-            folder = os.path.join(pac_folder, d.lower())
-            if os.path.exists(folder):
-                self.animations[d] = Animation(folder, tile_size, speed=8, loop=True)
-            else:
-                print(f"[Warning] Animation folder missing: {folder}")
 
-        # Animation de mort (ne loop pas)
-        death_folder = os.path.join(pac_folder, "death")
-        if os.path.exists(death_folder):
-            self.death_animation = Animation(death_folder, tile_size, speed=10, loop=False)
-        else:
-            print(f"[Warning] Death animation folder missing: {death_folder}")
+            folder = f"{pac_folder}/{d.lower()}"
+
+            try:
+                self.animations[d] = Animation(
+                    folder,
+                    tile_size,
+                    speed=8,
+                    loop=True
+                )
+
+            except Exception as e:
+                print(f"[Warning] Animation missing for {d}:", e)
+
+        # =========================
+        # DEATH ANIMATION
+        # =========================
+        try:
+            self.death_animation = Animation(
+                f"{pac_folder}/death",
+                tile_size,
+                speed=10,
+                loop=False
+            )
+
+        except Exception as e:
+            print("[Warning] Death animation missing:", e)
             self.death_animation = None
 
     # ==================================================
