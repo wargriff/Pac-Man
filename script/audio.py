@@ -1,15 +1,6 @@
+# script/audio.py
 import pygame
 import os
-import sys
-
-
-def resource_path(relative_path):
-    try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
 
 
 class Audio:
@@ -17,39 +8,74 @@ class Audio:
     def __init__(self):
 
         if not pygame.mixer.get_init():
-            pygame.mixer.init()
+            pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
 
-        # chemin assets compatible exe PyInstaller
-        self.base_path = resource_path(os.path.join("assets", "audio"))
+        pygame.mixer.set_num_channels(8)
 
-        self.sounds = {
-            "start": pygame.mixer.Sound(os.path.join(self.base_path, "pacman_beginning.wav")),
-            "chomp": pygame.mixer.Sound(os.path.join(self.base_path, "pacman_chomp.wav")),
-            "death": pygame.mixer.Sound(os.path.join(self.base_path, "pacman_death.wav")),
-            "eatfruit": pygame.mixer.Sound(os.path.join(self.base_path, "pacman_eatfruit.wav")),
-            "eatghost": pygame.mixer.Sound(os.path.join(self.base_path, "pacman_eatghost.wav")),
-            "extralife": pygame.mixer.Sound(os.path.join(self.base_path, "pacman_extrapac.wav")),
-            "intermission": pygame.mixer.Sound(os.path.join(self.base_path, "pacman_intermission.wav")),
+        # chemin simple vers assets/audio
+        self.base_path = os.path.join("assets", "audio")
+
+        self.sounds = {}
+
+        sound_files = {
+            "start": "pacman_beginning.wav",
+            "chomp": "pacman_chomp.wav",
+            "death": "pacman_death.wav",
+            "eatfruit": "pacman_eatfruit.wav",
+            "eatghost": "pacman_eatghost.wav",
+            "extralife": "pacman_extrapac.wav",
+            "intermission": "pacman_intermission.wav",
         }
 
-        self.set_volume(0.5)
+        for name, filename in sound_files.items():
+            self.sounds[name] = self.load_sound(filename)
+
+        self.volume = 0.5
+        self.set_volume(self.volume)
 
         self.last_chomp_time = 0
+
+    # ----------------------------------
+    # SAFE SOUND LOADER
+    # ----------------------------------
+    def load_sound(self, filename):
+
+        path = os.path.join(self.base_path, filename)
+
+        if not os.path.exists(path):
+            print("❌ Missing sound:", path)
+            return None
+
+        try:
+            return pygame.mixer.Sound(path)
+        except pygame.error as e:
+            print("❌ Sound load error:", filename, e)
+            return None
 
     # ----------------------------------
     # PLAY GENERIC
     # ----------------------------------
     def play(self, name):
-        if name in self.sounds:
-            self.sounds[name].play()
+
+        sound = self.sounds.get(name)
+
+        if sound:
+            sound.play()
 
     # ----------------------------------
     # SAFE CHOMP (anti spam)
     # ----------------------------------
     def play_chomp(self):
+
         now = pygame.time.get_ticks()
+
         if now - self.last_chomp_time > 120:
-            self.sounds["chomp"].play()
+
+            sound = self.sounds.get("chomp")
+
+            if sound:
+                sound.play()
+
             self.last_chomp_time = now
 
     # ----------------------------------
@@ -74,8 +100,35 @@ class Audio:
         self.play("intermission")
 
     # ----------------------------------
+    # MUSIC
+    # ----------------------------------
+    def play_music(self, filename, loop=True):
+
+        path = os.path.join(self.base_path, filename)
+
+        if not os.path.exists(path):
+            print("❌ Music missing:", path)
+            return
+
+        pygame.mixer.music.load(path)
+
+        if loop:
+            pygame.mixer.music.play(-1)
+        else:
+            pygame.mixer.music.play()
+
+    def stop_music(self):
+        pygame.mixer.music.stop()
+
+    # ----------------------------------
     # VOLUME
     # ----------------------------------
     def set_volume(self, volume):
+
+        self.volume = max(0, min(volume, 1))
+
         for sound in self.sounds.values():
-            sound.set_volume(volume)
+            if sound:
+                sound.set_volume(self.volume)
+
+        pygame.mixer.music.set_volume(self.volume)

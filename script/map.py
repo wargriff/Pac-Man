@@ -38,27 +38,16 @@ class MapLoader:
         cols = img_w // self.map_width
         rows = img_h // self.map_height
 
-        for y in range(self.rows):
+        for row in range(rows):
+            for col in range(cols):
+                x = col * self.map_width
+                y = row * self.map_height
 
-            row = []
+                map_img = self.image.crop(
+                    (x, y, x + self.map_width, y + self.map_height)
+                )
 
-            for x in range(self.cols):
-
-                r, g, b = pixels[x, y]
-
-                if r < 50 and g < 50 and b < 50:
-                    row.append(WALL)
-
-                elif r > 200 and g > 200 and b < 100:
-                    row.append(DOT)
-
-                elif r > 200 and g < 100 and b < 100:
-                    row.append(POWER)
-
-                else:
-                    row.append(EMPTY)
-
-            maze.append(row)
+                self.maps.append(map_img)
 
     def get_random_map(self) -> Image.Image:
 
@@ -81,23 +70,65 @@ class MapLoader:
 
 class Map:
 
-    def __init__(self, scale: float = 1.0, seed: Optional[int] = None):
+    def __init__(
+            self,
+            scale: float = 1.0,
+            seed: Optional[int] = None,
+            loader: Optional[MapLoader] = None
+    ):
 
+        # =========================
+        # DIMENSIONS MAP
+        # =========================
         self.cols = COLS
         self.rows = ROWS
 
+        # =========================
+        # SCALE / TILE SIZE
+        # =========================
         self.scale = scale
         self.tile_size = int(BASE_TILE_SIZE * scale)
 
-        self.level = 1
-        self.seed = seed
-
+        # =========================
+        # PIXEL SIZE
+        # =========================
         self.width = self.cols * self.tile_size
         self.height = self.rows * self.tile_size
 
+        # =========================
+        # LEVEL SYSTEM
+        # =========================
+        self.level = 1
+        self.seed = seed
+
+        # =========================
+        # GAME STATS
+        # =========================
+        self.dots_eaten = 0
+
+        # =========================
+        # MAP STORAGE
+        # =========================
         self.maze: List[List[str]] = []
 
-        self.regenerate()
+        # =========================
+        # MAP LOADER (optional)
+        # =========================
+        self.loader = loader
+
+        # =========================
+        # RANDOM SEED
+        # =========================
+        if self.seed is not None:
+            random.seed((self.seed or 0) + self.level)
+
+        # =========================
+        # GENERATE MAP
+        # =========================
+        if self.loader:
+            self.load_random_map_from_loader(self.loader)
+        else:
+            self.regenerate()
 
     # ==========================================================
     # UTILS
@@ -123,28 +154,21 @@ class Map:
             for x in range(self.cols):
 
                 px = pixels[x * self.tile_size, y * self.tile_size]
-
                 r, g, b = px
 
-                # mur (noir)
-                if r < 50 and g < 50:
-                    if b < 50:
-                        row.append(WALL)
+                # Mur (noir)
+                if r < 50 and g < 50 and b < 50:
+                    row.append(WALL)
 
-                    # dot (jaune)
-                    elif r > 200 and g > 200 and b < 100:
-                        row.append(DOT)
-
-                    # power pellet (rouge)
-                    elif r > 200 and g < 100 and b < 100:
-                        row.append(POWER)
-
-                    else:
-                        row.append(EMPTY)
+                # Dot (jaune)
                 elif r > 200 and g > 200 and b < 100:
                     row.append(DOT)
+
+                # Power pellet (rouge)
                 elif r > 200 and g < 100 and b < 100:
                     row.append(POWER)
+
+                # Vide
                 else:
                     row.append(EMPTY)
 
@@ -168,7 +192,7 @@ class Map:
     def regenerate(self):
 
         if self.seed is not None:
-            random.seed(self.seed + self.level)
+            random.seed((self.seed or 0) + self.level)
 
         self.maze = self._generate_maze()
 
@@ -287,13 +311,37 @@ class Map:
         maze[mid][self.cols - 1] = EMPTY
         maze[mid][self.cols - 2] = EMPTY
 
+    def _remove_dead_ends(self, maze):
+
+        for _ in range(50):
+
+            x = random.randint(1, self.cols - 2)
+            y = random.randint(1, self.rows - 2)
+
+            if maze[y][x] != DOT:
+                continue
+
+            walls = 0
+
+            for dx, dy in DIRECTIONS_4:
+                if maze[y + dy][x + dx] == WALL:
+                    walls += 1
+
+            if walls >= 3:
+                dx, dy = random.choice(DIRECTIONS_4)
+                maze[y + dy][x + dx] = DOT
+
     def wrap_position(self, x: int, y: int):
 
         if x < 0:
-            return self.cols - 1, y
+            x = self.cols - 1
+        elif x >= self.cols:
+            x = 0
 
-        if x >= self.cols:
-            return 0, y
+        if y < 0:
+            y = self.rows - 1
+        elif y >= self.rows:
+            y = 0
 
         return x, y
 
@@ -333,21 +381,34 @@ class Map:
 
         if tile == DOT:
             self.maze[y][x] = EMPTY
+            self.dots_eaten += 1
             return "dot"
 
         if tile == POWER:
             self.maze[y][x] = EMPTY
+            self.dots_eaten += 1
             return "power"
 
         return None
 
-    def remaining_dots(self):
+    def get_tile(self, x: int, y: int):
 
-        return any(
-            tile in (DOT, POWER)
-            for row in self.maze
-            for tile in row
-        )
+        if not self.in_bounds(x, y):
+            return WALL
+
+        return self.maze[y][x]
+
+    def set_tile(self, x: int, y: int, tile):
+
+        if self.in_bounds(x, y):
+            self.maze[y][x] = tile
+
+    def remaining_dots(self):
+        for row in self.maze:
+            for tile in row:
+                if tile == DOT or tile == POWER:
+                    return True
+        return False
 
     # ==========================================================
     # LEVEL SYSTEM
@@ -373,7 +434,17 @@ class Map:
     def print_maze(self):
 
         for row in self.maze:
-            print("".join(row))
+            print("\n".join("".join(row) for row in self.maze))
+
+    def get_random_empty_tile(self):
+
+        while True:
+
+            x = random.randint(1, self.cols - 2)
+            y = random.randint(1, self.rows - 2)
+
+            if self.maze[y][x] == EMPTY:
+                return x, y
 
     def count_tiles(self, tile_type: str):
 

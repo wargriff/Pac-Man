@@ -321,4 +321,21 @@ class Ghost:
 
         self.x = self.spawn_x
         self.y = self.spawn_y
+
         self.current_direction = "left"
+
+        self.timer = 0
+
+        # respawn delay comme Pac-Man
+        self.spawn_delay = 120
+
+    def reset_position(self):
+
+        self.grid_x = self.spawn_x
+        self.grid_y = self.spawn_y
+
+        self.x = self.spawn_x * self.tile_size
+        self.y = self.spawn_y * self.tile_size
+
+        self.dx = 0
+        self.dy = 0
