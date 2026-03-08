@@ -11,13 +11,12 @@ from script.audio import Audio
 from script.utils import resource_path
 from script.fruit import Fruit
 
-
 class Game:
 
     def __init__(self, screen):
 
         # =============================
-        # SCREEN / DIMENSIONS
+        # SCREEN
         # =============================
         self.screen = screen
         self.width = screen.get_width()
@@ -28,6 +27,7 @@ class Game:
         # =============================
         self.level = 1
         self.lives = 3
+        self.game_over = False
 
         # =============================
         # MAP
@@ -35,13 +35,13 @@ class Game:
         self.map = Map(scale=1)
 
         # =============================
-        # SCALE AUTO (RESPONSIVE)
+        # RESPONSIVE TILE SIZE
         # =============================
         self.HUD_RATIO = 0.07
         self.hud_height = int(self.height * self.HUD_RATIO)
 
-        available_height = self.height - self.hud_height
         available_width = self.width
+        available_height = self.height - self.hud_height
 
         scale_x = available_width / self.map.cols
         scale_y = available_height / self.map.rows
@@ -50,7 +50,7 @@ class Game:
         self.map.tile_size = self.tile_size
 
         # =============================
-        # SPAWN POSITIONS
+        # SPAWN
         # =============================
         self.PLAYER_SPAWN = self.find_player_spawn()
 
@@ -58,17 +58,9 @@ class Game:
         print("TILE:", self.map.maze[self.PLAYER_SPAWN[1]][self.PLAYER_SPAWN[0]])
 
         # =============================
-        # BASE DIRECTORY
-        # =============================
-        self.BASE_DIR = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..")
-        )
-
-        # =============================
         # AUDIO
         # =============================
         self.audio = Audio()
-        self.audio.play_start()
 
         # =============================
         # PLAYER
@@ -77,8 +69,7 @@ class Game:
             self.PLAYER_SPAWN[0],
             self.PLAYER_SPAWN[1],
             self.tile_size,
-            self.audio,
-            self.BASE_DIR
+            self.audio
         )
 
         # =============================
@@ -100,11 +91,11 @@ class Game:
         self.fruit = None
 
         # =============================
-        # UI
+        # UI FONTS
         # =============================
         self.hud_font = pygame.font.SysFont("Arial", 22)
-        self.font = pygame.font.SysFont("arial", 48, bold=True)
-        self.small_font = pygame.font.SysFont("arial", 28)
+        self.font = pygame.font.SysFont("Arial", 48, bold=True)
+        self.small_font = pygame.font.SysFont("Arial", 28)
 
         # =============================
         # CREATE FIRST LEVEL
@@ -112,9 +103,9 @@ class Game:
         self.create_level()
 
         # =============================
-        # GAME OVER
+        # START SOUND
         # =============================
-        self.game_over = False
+        self.audio.play_start()
 
     # ==================================================
     # CREATE LEVEL

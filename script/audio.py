@@ -1,19 +1,22 @@
 # script/audio.py
+
 import pygame
 import os
+from script.utils.resource import resource_path
 
 
 class Audio:
 
     def __init__(self):
 
+        # Initialisation mixer si nécessaire
         if not pygame.mixer.get_init():
             pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
 
         pygame.mixer.set_num_channels(8)
 
-        # chemin simple vers assets/audio
-        self.base_path = os.path.join("assets", "audio")
+        # chemin compatible PyInstaller
+        self.base_path = resource_path("assets/audio")
 
         self.sounds = {}
 
@@ -27,6 +30,7 @@ class Audio:
             "intermission": "pacman_intermission.wav",
         }
 
+        # Chargement des sons
         for name, filename in sound_files.items():
             self.sounds[name] = self.load_sound(filename)
 
@@ -38,6 +42,7 @@ class Audio:
     # ----------------------------------
     # SAFE SOUND LOADER
     # ----------------------------------
+
     def load_sound(self, filename):
 
         path = os.path.join(self.base_path, filename)
@@ -48,6 +53,7 @@ class Audio:
 
         try:
             return pygame.mixer.Sound(path)
+
         except pygame.error as e:
             print("❌ Sound load error:", filename, e)
             return None
@@ -55,6 +61,7 @@ class Audio:
     # ----------------------------------
     # PLAY GENERIC
     # ----------------------------------
+
     def play(self, name):
 
         sound = self.sounds.get(name)
@@ -65,6 +72,7 @@ class Audio:
     # ----------------------------------
     # SAFE CHOMP (anti spam)
     # ----------------------------------
+
     def play_chomp(self):
 
         now = pygame.time.get_ticks()
@@ -81,6 +89,7 @@ class Audio:
     # ----------------------------------
     # SPECIFIC SOUNDS
     # ----------------------------------
+
     def play_start(self):
         self.play("start")
 
@@ -102,6 +111,7 @@ class Audio:
     # ----------------------------------
     # MUSIC
     # ----------------------------------
+
     def play_music(self, filename, loop=True):
 
         path = os.path.join(self.base_path, filename)
@@ -123,6 +133,7 @@ class Audio:
     # ----------------------------------
     # VOLUME
     # ----------------------------------
+
     def set_volume(self, volume):
 
         self.volume = max(0, min(volume, 1))
