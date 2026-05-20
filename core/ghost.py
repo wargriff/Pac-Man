@@ -1,7 +1,8 @@
-import random
 import os
-from script.animation import Animation
-from script.ai import GhostAI
+import random
+
+from core.ai import GhostAI
+from rendering.animation import Animation
 
 
 class Ghost:
@@ -79,21 +80,40 @@ class Ghost:
             print("❌ Ghost folder missing:", base_path)
             return animations
 
-        for folder in os.listdir(base_path):
+        subfolders = [
+            f for f in os.listdir(base_path)
+            if os.path.isdir(os.path.join(base_path, f))
+        ]
 
-            direction = folder.lower()
+        # ==========================
+        # CAS NORMAL (ghost classique)
+        # ==========================
+        if subfolders:
 
-            if direction in self.DIRECTIONS:
+            for direction in subfolders:
 
-                path = os.path.join(base_path, folder)
+                dir_lower = direction.lower()
 
-                if os.path.isdir(path):
+                if dir_lower in self.DIRECTIONS:
+                    path = os.path.join(base_path, direction)
 
-                    animations[direction] = Animation(
+                    animations[dir_lower] = Animation(
                         path,
                         self.tile_size,
                         speed=10
                     )
+
+        # ==========================
+        # CAS BOSS (images directes)
+        # ==========================
+        else:
+            print(f"👹 Boss detected (no directions): {base_path}")
+
+            animations["default"] = Animation(
+                base_path,
+                self.tile_size,
+                speed=8
+            )
 
         return animations
 
@@ -284,6 +304,9 @@ class Ghost:
 
         anim = self.animations.get(self.current_direction)
 
+        if not anim:
+            anim = self.animations.get("default")
+
         if anim is None:
             anim = next(iter(self.animations.values()))
 
@@ -339,3 +362,14 @@ class Ghost:
 
         self.dx = 0
         self.dy = 0
+
+    def set_tile_size(self, tile_size: int):
+        self.tile_size = tile_size
+
+        # rescale sprite
+        if hasattr(self, "frames"):
+            for direction in self.frames:
+                self.frames[direction] = [
+                    pygame.transform.scale(img, (tile_size, tile_size))
+                    for img in self.frames[direction]
+                ]

@@ -1,6 +1,7 @@
-import random
-import pygame
 import math
+import random
+
+import pygame
 
 
 class Fruit:
@@ -19,12 +20,15 @@ class Fruit:
     def __init__(self, level, map_obj):
 
         self.level = min(level, 8)
-
         self.name, self.score_value, self.color = self.FRUIT_TYPES[self.level]
 
-        # position centre de la map (comme l'original)
-        self.grid_x = map_obj.cols // 2
-        self.grid_y = map_obj.rows // 2 + 3
+        # ✅ positions (compatibilité Game)
+        self.x = map_obj.cols // 2
+        self.y = map_obj.rows // 2 + 3
+
+        # alias (optionnel mais safe)
+        self.grid_x = self.x
+        self.grid_y = self.y
 
         self.visible = False
         self.timer = 0
@@ -40,7 +44,7 @@ class Fruit:
 
         self.visible = True
 
-        # entre 9 et 10 secondes comme Pac-Man
+        # ⏱️ 9 à 10 secondes (~60 FPS)
         self.timer = random.randint(540, 600)
 
     # =========================
@@ -69,7 +73,7 @@ class Fruit:
         if not self.visible:
             return 0
 
-        if player.grid_x == self.grid_x and player.grid_y == self.grid_y:
+        if player.grid_x == self.x and player.grid_y == self.y:
 
             self.visible = False
             return self.score_value
@@ -84,8 +88,8 @@ class Fruit:
         if not self.visible:
             return
 
-        px = offset_x + self.grid_x * tile_size
-        py = offset_y + self.grid_y * tile_size
+        px = offset_x + self.x * tile_size
+        py = offset_y + self.y * tile_size
 
         center = (
             px + tile_size // 2,
@@ -94,7 +98,7 @@ class Fruit:
 
         radius = int(tile_size // 3 * self.anim_scale)
 
-        # dessin selon fruit
+        # 🍒 Cherry
         if self.name == "cherry":
 
             pygame.draw.circle(screen, (200, 0, 0), center, radius)
@@ -105,24 +109,24 @@ class Fruit:
                 radius // 4
             )
 
+        # 🍊 Orange
         elif self.name == "orange":
-
             pygame.draw.circle(screen, (255, 165, 0), center, radius)
 
+        # 🍎 Apple
         elif self.name == "apple":
-
             pygame.draw.circle(screen, (255, 0, 100), center, radius)
 
+        # 🍈 Melon
         elif self.name == "melon":
-
             pygame.draw.circle(screen, (0, 200, 100), center, radius)
 
+        # 🔔 Bell
         elif self.name == "bell":
-
             pygame.draw.circle(screen, (255, 255, 0), center, radius)
 
+        # 🔑 Key
         elif self.name == "key":
-
             pygame.draw.circle(screen, (240, 240, 240), center, radius)
 
         else:

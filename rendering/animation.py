@@ -1,9 +1,6 @@
-# script/animation.py
-
 import os
-import pygame
-from script.utils.resource import resource_path
 
+import pygame
 
 
 # ==========================================================
@@ -15,14 +12,13 @@ class AssetManager:
     _images = {}
 
     @classmethod
-    def image(cls, path):
+    def image(cls, full_path):
 
-        if path not in cls._images:
+        if full_path not in cls._images:
 
-            full = resource_path(path)
-            cls._images[path] = pygame.image.load(full).convert_alpha()
+            cls._images[full_path] = pygame.image.load(full_path).convert_alpha()
 
-        return cls._images[path]
+        return cls._images[full_path]
 
 
 # ==========================================================
@@ -40,40 +36,51 @@ class Animation:
         self.loop = loop
         self.finished = False
 
-        # chemin absolu compatible PyInstaller
-        folder = resource_path(folder_path)
+        # ✅ chemin direct (déjà correct depuis config.paths)
+        folder = folder_path
 
         if not os.path.exists(folder):
-            raise FileNotFoundError(f"Dossier introuvable : {folder}")
+            raise FileNotFoundError(f"❌ Dossier introuvable : {folder}")
 
-        # tri correct des frames
+        # ======================================================
+        # TRI ROBUSTE
+        # ======================================================
+
         files = sorted(
             [f for f in os.listdir(folder) if f.endswith(".png")],
-            key=self._frame_sort
+            key=self._natural_sort
         )
 
-        print("Loaded frames:", files)
+        print("✅ Loaded frames:", files)
+
+        # ======================================================
+        # LOAD IMAGES
+        # ======================================================
 
         for file in files:
 
-            img = AssetManager.image(f"{folder_path}/{file}")
+            full_path = os.path.join(folder, file)
+
+            img = AssetManager.image(full_path)
             img = pygame.transform.scale(img, (tile_size, tile_size))
 
             self.frames.append(img)
 
         if not self.frames:
-            raise ValueError(f"Aucune image trouvée dans {folder}")
+            raise ValueError(f"❌ Aucune image trouvée dans {folder}")
 
     # ==========================================================
-    # TRI DES FRAMES
+    # TRI NATUREL (fix 1,2,10)
     # ==========================================================
 
-    def _frame_sort(self, filename):
+    def _natural_sort(self, filename):
 
-        try:
-            return int(filename.split("_")[1].split(".")[0])
-        except:
-            return 0
+        import re
+
+        return [
+            int(text) if text.isdigit() else text.lower()
+            for text in re.split(r'(\d+)', filename)
+        ]
 
     # ==========================================================
     # UPDATE

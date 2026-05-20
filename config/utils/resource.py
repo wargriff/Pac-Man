@@ -20,13 +20,18 @@ def get_base_path() -> Path:
     if _BASE_PATH is not None:
         return _BASE_PATH
 
-    # Cas PyInstaller
+    # ==========================
+    # CAS PYINSTALLER
+    # ==========================
     if getattr(sys, "frozen", False):
         _BASE_PATH = Path(sys._MEIPASS)
 
-    # Cas développement
+    # ==========================
+    # CAS DEV (IMPORTANT FIX)
+    # ==========================
     else:
-        _BASE_PATH = Path(__file__).resolve().parents[1]
+        # 🔥 remonte à la racine du projet
+        _BASE_PATH = Path(__file__).resolve().parents[2]
 
     return _BASE_PATH
 
@@ -40,7 +45,9 @@ def resource_path(relative: Union[str, Path]) -> Path:
     Retourne le chemin absolu d'une ressource.
     """
 
-    return get_base_path() / Path(relative)
+    path = get_base_path() / Path(relative)
+
+    return path
 
 
 # ==========================================================

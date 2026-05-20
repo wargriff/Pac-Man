@@ -1,21 +1,30 @@
-# script/audio.py
+# config/audio.py
+
+from pathlib import Path
 
 import pygame
-from script.utils.resource import resource_path
 
 
 class Audio:
 
     def __init__(self):
 
-        # Initialisation mixer si nécessaire
+        # ===============================
+        # INIT MIXER
+        # ===============================
+
         if not pygame.mixer.get_init():
             pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
 
         pygame.mixer.set_num_channels(8)
 
-        # dossier audio compatible PyInstaller
-        self.base_path = resource_path("assets/audio")
+        # ===============================
+        # CHEMIN PROPRE (SANS config/)
+        # ===============================
+
+        self.base_path = Path(__file__).resolve().parent.parent / "assets" / "audio"
+
+        print("🔊 Audio path:", self.base_path)
 
         self.sounds = {}
 
@@ -29,7 +38,10 @@ class Audio:
             "intermission": "pacman_intermission.wav",
         }
 
-        # Chargement des sons
+        # ===============================
+        # LOAD
+        # ===============================
+
         for name, filename in sound_files.items():
             self.sounds[name] = self.load_sound(filename)
 
@@ -39,7 +51,7 @@ class Audio:
         self.last_chomp_time = 0
 
     # ----------------------------------
-    # SAFE SOUND LOADER
+    # LOAD SAFE
     # ----------------------------------
 
     def load_sound(self, filename):
@@ -58,7 +70,7 @@ class Audio:
             return None
 
     # ----------------------------------
-    # PLAY GENERIC
+    # PLAY
     # ----------------------------------
 
     def play(self, name):
@@ -69,7 +81,7 @@ class Audio:
             sound.play()
 
     # ----------------------------------
-    # SAFE CHOMP (anti spam)
+    # CHOMP (anti spam)
     # ----------------------------------
 
     def play_chomp(self):
@@ -86,26 +98,15 @@ class Audio:
             self.last_chomp_time = now
 
     # ----------------------------------
-    # SPECIFIC SOUNDS
+    # SHORTCUTS
     # ----------------------------------
 
-    def play_start(self):
-        self.play("start")
-
-    def play_death(self):
-        self.play("death")
-
-    def play_eatfruit(self):
-        self.play("eatfruit")
-
-    def play_eatghost(self):
-        self.play("eatghost")
-
-    def play_extralife(self):
-        self.play("extralife")
-
-    def play_intermission(self):
-        self.play("intermission")
+    def play_start(self): self.play("start")
+    def play_death(self): self.play("death")
+    def play_eatfruit(self): self.play("eatfruit")
+    def play_eatghost(self): self.play("eatghost")
+    def play_extralife(self): self.play("extralife")
+    def play_intermission(self): self.play("intermission")
 
     # ----------------------------------
     # MUSIC
@@ -120,11 +121,7 @@ class Audio:
             return
 
         pygame.mixer.music.load(str(path))
-
-        if loop:
-            pygame.mixer.music.play(-1)
-        else:
-            pygame.mixer.music.play()
+        pygame.mixer.music.play(-1 if loop else 0)
 
     def stop_music(self):
         pygame.mixer.music.stop()
