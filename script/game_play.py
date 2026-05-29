@@ -389,55 +389,6 @@ class Game:
     # ==================================================
     def reset_full_game(self):
         self.level = 1
-        self.player.lives = self.player.max_lives
-        self.player.score = 0
-        self.game_over = False
-        self.create_level()
-
-    # ==================================================
-    # RESTART GAME
-    # ==================================================
-    def restart_game(self):
-        self.level = 1
-        self.player.score = 0
-        self.player.lives = self.player.max_lives
-        self.player.game_over = False
-        self.player.is_dead = False
-        self.game_over = False
-        self.create_level()
-
-    # ==================================================
-    # RESIZE
-    # ==================================================
-    def resize(self, width, height):
-        self.width = width
-        self.height = height
-        self.screen = pygame.display.get_surface()
-
-        hud_height = int(self.height * 0.07)
-        available_width = self.width
-        available_height = self.height - hud_height
-
-        scale_x = available_width / self.map.cols
-        scale_y = available_height / self.map.rows
-        tile = int(min(scale_x, scale_y))
-
-        # Update tile size
-        self.map.tile_size = tile
-        self.player.tile_size = tile
-        self.player.x = self.player.grid_x * tile
-        self.player.y = self.player.grid_y * tile
-
-        for ghost in self.ghosts:
-            ghost.tile_size = tile
-            ghost.x = ghost.grid_x * tile
-            ghost.y = ghost.grid_y * tile
-
-    # ==================================================
-    # RESET GAME
-    # ==================================================
-    def reset_full_game(self):
-        self.level = 1
         self.lives = 3
         self.player.score = 0
         self.create_level()
@@ -488,5 +439,3 @@ class Game:
         # GHOSTS
         for ghost in self.ghosts:
             ghost.tile_size = tile
-            ghost.x = ghost.grid_x * tile
-            ghost.y = ghost.grid_y * tile

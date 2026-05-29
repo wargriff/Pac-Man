@@ -139,9 +139,9 @@ class Player:
         grid_y = int((next_y + half) // size)
 
         # Si hors de la map, considérer libre (portails gérés ailleurs)
-        if grid_x < 0 or grid_x >= game_map.width:
+        if grid_x < 0 or grid_x >= game_map.cols:
             return True
-        if grid_y < 0 or grid_y >= game_map.height:
+        if grid_y < 0 or grid_y >= game_map.rows:
             return True
 
         return not game_map.is_wall(grid_x, grid_y)
